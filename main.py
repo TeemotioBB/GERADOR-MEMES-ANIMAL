@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import traceback
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -13,7 +15,7 @@ from auth import OptionalBasicAuthMiddleware
 from config import BASE_DIR, settings
 from jobs import cleanup_old_jobs, create_job, get_job, get_zip_path
 from models import PhraseRequest, PhraseResponse, RenderSettings
-from renderer import render_post_bytes
+from renderer import create_static_video, render_post_bytes
 
 
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
@@ -116,6 +118,56 @@ async def preview(
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Não foi possível renderizar: {exc}") from exc
     return Response(content=rendered, media_type="image/jpeg")
+
+
+@app.post("/api/render-video")
+async def render_individual_video(
+    phrase: str = Form(...),
+    settings_json: str = Form(...),
+    phrase_index: int = Form(default=1),
+    image: UploadFile | None = File(default=None),
+):
+    clean_phrase = phrase.strip()
+    if not clean_phrase:
+        raise HTTPException(status_code=400, detail="Informe uma frase para gerar o vídeo.")
+    if phrase_index < 1 or phrase_index > 9999:
+        raise HTTPException(status_code=400, detail="Número da frase inválido.")
+
+    try:
+        config = RenderSettings.model_validate_json(settings_json)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=json.loads(exc.json())) from exc
+
+    image_bytes = await read_uploaded_image(image)
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="single-video-", dir=settings.storage_dir) as temp_dir:
+            directory = Path(temp_dir)
+            image_path = directory / "post.jpg"
+            video_path = directory / "post.mp4"
+            image_path.write_bytes(render_post_bytes(image_bytes, clean_phrase, config))
+            create_static_video(
+                image_path,
+                video_path,
+                config.video_duration,
+                config.width,
+                config.height,
+            )
+            video_bytes = video_path.read_bytes()
+    except Exception as exc:
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=f"Não foi possível gerar este vídeo: {exc}") from exc
+
+    filename = f"post_{phrase_index:03d}.mp4"
+    return Response(
+        content=video_bytes,
+        media_type="video/mp4",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @app.post("/api/jobs")

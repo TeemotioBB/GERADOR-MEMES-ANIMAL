@@ -140,10 +140,14 @@
     row.innerHTML = `
       <span class="phrase-number"></span>
       <textarea rows="3"></textarea>
-      <button class="delete-phrase" title="Excluir frase">×</button>
+      <div class="phrase-actions">
+        <button type="button" class="download-phrase" title="Baixar este vídeo" aria-label="Baixar este vídeo">↓</button>
+        <button type="button" class="delete-phrase" title="Excluir frase" aria-label="Excluir frase">×</button>
+      </div>
     `;
     row.querySelector('textarea').value = value;
     row.querySelector('textarea').addEventListener('input', updateBrowserPreview);
+    row.querySelector('.download-phrase').addEventListener('click', () => downloadIndividualPhrase(row));
     row.querySelector('.delete-phrase').addEventListener('click', () => {
       row.remove();
       if (!$('.phrase-row')) elements.phraseList.appendChild(phraseRow(''));
@@ -151,6 +155,64 @@
     });
     return row;
   }
+
+  function filenameFromDisposition(disposition, fallback) {
+    if (!disposition) return fallback;
+    const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match) return decodeURIComponent(utf8Match[1].replace(/["']/g, ''));
+    const simpleMatch = disposition.match(/filename="?([^";]+)"?/i);
+    return simpleMatch ? simpleMatch[1].trim() : fallback;
+  }
+
+  async function downloadIndividualPhrase(row) {
+    const phrase = row.querySelector('textarea').value.trim();
+    if (!phrase) return showToast('Escreva uma frase antes de baixar.', true);
+
+    const button = row.querySelector('.download-phrase');
+    const rows = $$('.phrase-row');
+    const phraseIndex = Math.max(1, rows.indexOf(row) + 1);
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = '…';
+
+    try {
+      const formData = new FormData();
+      formData.append('phrase', phrase);
+      formData.append('phrase_index', String(phraseIndex));
+      formData.append('settings_json', JSON.stringify(renderSettings()));
+      appendImageToForm(formData);
+
+      const response = await fetch('/api/render-video', { method: 'POST', body: formData });
+      if (!response.ok) {
+        const raw = await response.text();
+        let payload = {};
+        try { payload = raw ? JSON.parse(raw) : {}; } catch (_) { payload = { detail: raw }; }
+        throw new Error(extractError(payload, 'Não foi possível gerar este vídeo.'));
+      }
+
+      const blob = await response.blob();
+      const filename = filenameFromDisposition(
+        response.headers.get('Content-Disposition'),
+        `post_${String(phraseIndex).padStart(3, '0')}.mp4`,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      showToast(`Vídeo ${phraseIndex} pronto para baixar.`);
+    } catch (error) {
+      showToast(error.message, true);
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+
 
   function replacePhrases(phrases) {
     elements.phraseList.innerHTML = '';
@@ -329,6 +391,9 @@
     elements.phraseList.lastElementChild.querySelector('textarea').focus();
   });
 
+  $$('.download-phrase').forEach((button) => {
+    button.addEventListener('click', () => downloadIndividualPhrase(button.closest('.phrase-row')));
+  });
   $$('.delete-phrase').forEach((button) => {
     button.addEventListener('click', () => {
       button.closest('.phrase-row').remove();
