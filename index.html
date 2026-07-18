@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cretino Factory</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body
+  data-api-configured="{{ 'true' if api_configured else 'false' }}"
+  data-max-batch-size="{{ max_batch_size }}"
+>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">GERADOR EM MASSA</p>
+      <h1>Cretino Factory</h1>
+      <p class="subtitle">Frase automática + imagem estática + vídeo MP4 de 8 segundos.</p>
+    </div>
+    <div class="status-chip {{ 'ok' if api_configured else 'warn' }}">
+      <span></span>
+      {{ 'API configurada no servidor' if api_configured else 'API ainda não configurada' }}
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section class="panel controls-panel">
+      <div class="section-heading">
+        <span>1</span>
+        <div>
+          <h2>Imagem e formato</h2>
+          <p>A imagem do cachorro já vem como padrão. Troque quando quiser.</p>
+        </div>
+      </div>
+
+      <div class="field full">
+        <label for="imageInput">Imagem base</label>
+        <input id="imageInput" type="file" accept="image/*">
+        <small>JPG, PNG ou WEBP, até 15 MB. Sem upload, usa o cachorro padrão.</small>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="formatSelect">Formato</label>
+          <select id="formatSelect">
+            <option value="1080x1920" selected>Reels 9:16 — 1080 × 1920</option>
+            <option value="1080x1350">Feed 4:5 — 1080 × 1350</option>
+            <option value="1080x1080">Quadrado — 1080 × 1080</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fitMode">Encaixe da imagem</label>
+          <select id="fitMode">
+            <option value="cover" selected>Preencher e cortar</option>
+            <option value="contain">Mostrar inteira</option>
+            <option value="stretch">Esticar</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-heading spaced">
+        <span>2</span>
+        <div>
+          <h2>IA para gerar frases</h2>
+          <p>A chave pode ficar no Railway ou ser usada temporariamente nesta tela.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="modelInput">Modelo da IA</label>
+          <input id="modelInput" value="{{ default_model }}" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="apiKeyInput">Chave da API (opcional)</label>
+          <input id="apiKeyInput" type="password" placeholder="sk-..." autocomplete="off">
+          <small>Não é salva pelo sistema.</small>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="field">
+          <label for="countInput">Quantidade</label>
+          <input id="countInput" type="number" min="1" max="{{ max_batch_size }}" value="10">
+        </div>
+        <div class="field">
+          <label for="intensitySelect">Intensidade</label>
+          <select id="intensitySelect">
+            <option value="leve">Leve</option>
+            <option value="médio" selected>Médio</option>
+            <option value="pesado">Pesado</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="durationInput">Duração do vídeo</label>
+          <div class="input-suffix"><input id="durationInput" type="number" min="1" max="60" step="0.5" value="8"><span>s</span></div>
+        </div>
+      </div>
+
+      <div class="field full">
+        <label for="themeInput">Temas</label>
+        <input id="themeInput" value="relacionamento, rotina, dinheiro, amizade e situações cotidianas">
+      </div>
+
+      <div class="field full">
+        <label for="toneInput">Tom</label>
+        <input id="toneInput" value="humor debochado, absurdo, informal e muito compartilhável">
+      </div>
+
+      <details class="advanced">
+        <summary>Prompt e exemplos avançados</summary>
+        <div class="field full">
+          <label for="examplesInput">Exemplos de estilo</label>
+          <textarea id="examplesInput" rows="5">Se só eu sei a senha do meu cartão, como é que a maquininha sabe que eu errei a senha?
+Estudos feitos por mim afirmam que eu tô te querendo. E isso tende a piorar.
+Tenho peidado em qualquer lugar ultimamente, não me importo mais.
+Falando em coisa gostosa: você está bem?</textarea>
+          <small>A IA usa apenas como referência de ritmo. O prompt proíbe cópia literal.</small>
+        </div>
+        <div class="field full">
+          <label for="promptInput">Prompt-base da IA</label>
+          <textarea id="promptInput" rows="15">{{ default_prompt }}</textarea>
+        </div>
+      </details>
+
+      <button id="generateButton" class="button primary wide">
+        <span class="button-icon">✦</span> Gerar frases com IA
+      </button>
+
+      <div class="section-heading spaced">
+        <span>3</span>
+        <div>
+          <h2>Fonte e espaçamento</h2>
+          <p>Os valores abaixo já imitam a referência enviada.</p>
+        </div>
+      </div>
+
+      <div class="slider-grid">
+        <label>Topo do texto <output id="textTopOutput">13,5%</output><input id="textTop" type="range" min="2" max="60" step="0.5" value="13.5"></label>
+        <label>Altura da área <output id="textHeightOutput">31%</output><input id="textHeight" type="range" min="10" max="70" step="0.5" value="31"></label>
+        <label>Margem lateral <output id="textMarginOutput">9%</output><input id="textMargin" type="range" min="2" max="30" step="0.5" value="9"></label>
+        <label>Tamanho máximo <output id="fontMaxOutput">66px</output><input id="fontMax" type="range" min="30" max="120" step="1" value="66"></label>
+        <label>Espaço entre linhas <output id="lineSpacingOutput">1,22</output><input id="lineSpacing" type="range" min="0.9" max="1.8" step="0.01" value="1.22"></label>
+        <label>Tamanho da marca <output id="watermarkSizeOutput">34px</output><input id="watermarkSize" type="range" min="16" max="70" step="1" value="34"></label>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="watermarkInput">Marca-d'água</label>
+          <input id="watermarkInput" value="@minhapagina">
+        </div>
+        <div class="field">
+          <label for="textColor">Cor do texto</label>
+          <input id="textColor" type="color" value="#000000">
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="panel preview-panel">
+        <div class="preview-header">
+          <div>
+            <p class="eyebrow">PRÉVIA</p>
+            <h2>Resultado visual</h2>
+          </div>
+          <button id="serverPreviewButton" class="button secondary">Gerar prévia exata</button>
+        </div>
+
+        <div id="previewFrame" class="preview-frame ratio-9-16">
+          <img id="previewImage" src="/sample-dog.jpg" alt="Prévia do post">
+          <div id="previewText" class="preview-text">Se só eu sei a senha do meu cartão, como é que a maquininha sabe que eu errei a senha?</div>
+          <div id="previewWatermark" class="preview-watermark">@minhapagina</div>
+        </div>
+        <p class="preview-note">A prévia no navegador é aproximada. “Gerar prévia exata” usa a mesma renderização do lote final.</p>
+      </div>
+
+      <div class="panel phrase-panel">
+        <div class="phrase-header">
+          <div>
+            <p class="eyebrow">CONTEÚDO</p>
+            <h2>Frases do lote</h2>
+          </div>
+          <button id="addPhraseButton" class="button ghost">+ Adicionar frase</button>
+        </div>
+
+        <div id="phraseList" class="phrase-list">
+          <div class="phrase-row">
+            <span class="phrase-number">1</span>
+            <textarea rows="3">Se só eu sei a senha do meu cartão, como é que a maquininha sabe que eu errei a senha?</textarea>
+            <button class="delete-phrase" title="Excluir frase">×</button>
+          </div>
+        </div>
+
+        <div id="jobArea" class="job-area hidden">
+          <div class="job-line"><strong id="jobMessage">Preparando lote...</strong><span id="jobCounter">0/0</span></div>
+          <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+          <p id="jobError" class="error-text hidden"></p>
+        </div>
+
+        <div class="action-row">
+          <button id="batchButton" class="button primary">Gerar imagens + vídeos</button>
+          <a id="downloadButton" class="button success hidden" href="#">Baixar ZIP</a>
+        </div>
+        <p class="batch-note">Cada MP4 é totalmente estático, sem zoom, animação ou música. A música poderá ser adicionada em uma próxima versão.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
