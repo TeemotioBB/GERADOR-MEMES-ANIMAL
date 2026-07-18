@@ -60,19 +60,19 @@
       <div class="section-heading spaced">
         <span>2</span>
         <div>
-          <h2>IA para gerar frases</h2>
+          <h2>Grok para gerar frases</h2>
           <p>A chave pode ficar no Railway ou ser usada temporariamente nesta tela.</p>
         </div>
       </div>
 
       <div class="grid-2">
         <div class="field">
-          <label for="modelInput">Modelo da IA</label>
+          <label for="modelInput">Modelo do Grok</label>
           <input id="modelInput" value="{{ default_model }}" autocomplete="off">
         </div>
         <div class="field">
-          <label for="apiKeyInput">Chave da API (opcional)</label>
-          <input id="apiKeyInput" type="password" placeholder="sk-..." autocomplete="off">
+          <label for="apiKeyInput">Chave da xAI (opcional)</label>
+          <input id="apiKeyInput" type="password" placeholder="xai-..." autocomplete="off">
           <small>Não é salva pelo sistema.</small>
         </div>
       </div>
@@ -114,16 +114,16 @@
 Estudos feitos por mim afirmam que eu tô te querendo. E isso tende a piorar.
 Tenho peidado em qualquer lugar ultimamente, não me importo mais.
 Falando em coisa gostosa: você está bem?</textarea>
-          <small>A IA usa apenas como referência de ritmo. O prompt proíbe cópia literal.</small>
+          <small>O Grok usa apenas como referência de ritmo. O prompt proíbe cópia literal.</small>
         </div>
         <div class="field full">
-          <label for="promptInput">Prompt-base da IA</label>
+          <label for="promptInput">Prompt-base do Grok</label>
           <textarea id="promptInput" rows="15">{{ default_prompt }}</textarea>
         </div>
       </details>
 
       <button id="generateButton" class="button primary wide">
-        <span class="button-icon">✦</span> Gerar frases com IA
+        <span class="button-icon">✦</span> Gerar frases com Grok
       </button>
 
       <div class="section-heading spaced">

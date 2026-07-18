@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import traceback
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -44,10 +45,10 @@ async def read_uploaded_image(file: UploadFile | None) -> bytes:
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     html = (BASE_DIR / "index.html").read_text(encoding="utf-8")
-    api_configured = bool(settings.openai_api_key)
+    api_configured = bool(settings.xai_api_key)
     replacements = {
         "{{ default_prompt }}": read_default_prompt(),
-        "{{ default_model }}": settings.openai_model,
+        "{{ default_model }}": settings.xai_model,
         "{{ 'true' if api_configured else 'false' }}": "true" if api_configured else "false",
         "{{ max_batch_size }}": str(settings.max_batch_size),
         "{{ 'ok' if api_configured else 'warn' }}": "ok" if api_configured else "warn",
@@ -86,7 +87,14 @@ def phrases(payload: PhraseRequest):
         generated, model = generate_phrases(payload)
         return PhraseResponse(phrases=generated, model=model)
     except PhraseGenerationError as exc:
+        print(f"[phrase-generation] {exc}", flush=True)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro interno ao gerar frases: {exc.__class__.__name__}: {exc}",
+        ) from exc
 
 
 @app.post("/api/preview")

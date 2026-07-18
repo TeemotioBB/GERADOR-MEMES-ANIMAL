@@ -184,7 +184,17 @@
           api_key: elements.apiKey.value,
         }),
       });
-      const payload = await response.json().catch(() => ({}));
+      const rawResponse = await response.text();
+      let payload = {};
+      try {
+        payload = rawResponse ? JSON.parse(rawResponse) : {};
+      } catch (_) {
+        payload = {
+          detail: rawResponse
+            ? `Erro HTTP ${response.status}: ${rawResponse.slice(0, 500)}`
+            : `Erro HTTP ${response.status} sem resposta do servidor.`,
+        };
+      }
       if (!response.ok) throw new Error(extractError(payload, 'Não foi possível gerar as frases.'));
       replacePhrases(payload.phrases || []);
       showToast(`${payload.phrases.length} frases geradas com ${payload.model}.`);
@@ -192,7 +202,7 @@
       showToast(error.message, true);
     } finally {
       elements.generate.disabled = false;
-      elements.generate.innerHTML = '<span class="button-icon">✦</span> Gerar frases com IA';
+      elements.generate.innerHTML = '<span class="button-icon">✦</span> Gerar frases com Grok';
     }
   }
 
