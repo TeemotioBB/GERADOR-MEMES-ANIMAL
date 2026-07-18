@@ -95,19 +95,13 @@ def generate_phrases(payload: PhraseRequest) -> tuple[list[str], str]:
         # Lotes de até 10 deixam a saída estruturada mais confiável e variada.
         batch_size = min(remaining, 10)
         user_input = f"""
-Crie exatamente {batch_size} frases inéditas.
+Gere exatamente {batch_size} frases seguindo TODAS as regras do prompt do sistema.
 
-Tema escolhido no painel: {payload.theme}
-Tom escolhido no painel: {payload.tone}
+Tema: {payload.theme}
+Tom: {payload.tone}
 Intensidade: {payload.intensity}
 
-Referências de estilo fornecidas pelo usuário. Aprenda somente o ritmo, o tipo de humor e o nível de ousadia. Não copie e não faça paráfrases próximas:
-{payload.examples.strip() or '(nenhuma referência adicional)'}
-
-Frases já aprovadas neste lote e que não podem ser repetidas nem reaproveitadas:
-{json.dumps(collected[-30:], ensure_ascii=False)}
-
-Obedeça ao prompt do sistema e devolva exatamente {batch_size} strings no campo phrases.
+Não repita frases anteriores: {json.dumps(collected[-20:], ensure_ascii=False)}
 """.strip()
 
         try:
@@ -120,8 +114,10 @@ Obedeça ao prompt do sistema e devolva exatamente {batch_size} strings no campo
                 ],
                 text_format=PhraseBatch,
                 reasoning={"effort": settings.xai_reasoning_effort},
+                temperature=0.95,
+                top_p=0.95,
+                max_output_tokens=2500,
                 store=False,
-                max_output_tokens=2000,
             )
         except Exception as exc:  # subclasses variam conforme a versão do SDK
             message = str(exc).strip() or exc.__class__.__name__

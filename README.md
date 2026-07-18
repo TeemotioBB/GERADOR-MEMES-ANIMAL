@@ -45,7 +45,7 @@ Na área **Variables** do Railway, adicione:
 XAI_API_KEY=sua-chave-da-xai
 XAI_MODEL=grok-4.5
 XAI_BASE_URL=https://api.x.ai/v1
-XAI_REASONING_EFFORT=low
+XAI_REASONING_EFFORT=medium
 
 APP_USERNAME=admin
 APP_PASSWORD=uma-senha-forte
@@ -86,7 +86,7 @@ A geração utiliza a Responses API com Structured Outputs/Pydantic, evitando JS
 Para geração rápida de frases, o padrão é:
 
 ```env
-XAI_REASONING_EFFORT=low
+XAI_REASONING_EFFORT=medium
 ```
 
 Valores aceitos:

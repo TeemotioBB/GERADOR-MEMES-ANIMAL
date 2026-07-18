@@ -10,8 +10,8 @@ PROJECT_DIR = BASE_DIR
 
 
 def _reasoning_effort() -> str:
-    value = os.getenv("XAI_REASONING_EFFORT", "low").strip().lower()
-    return value if value in {"low", "medium", "high"} else "low"
+    value = os.getenv("XAI_REASONING_EFFORT", "medium").strip().lower()
+    return value if value in {"low", "medium", "high"} else "medium"
 
 
 @dataclass(frozen=True)
