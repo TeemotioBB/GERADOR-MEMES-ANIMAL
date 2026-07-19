@@ -9,7 +9,7 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from config import settings
+from config import resolve_music_track, settings
 from models import RenderSettings
 from renderer import create_static_video, render_post_bytes
 
@@ -80,6 +80,8 @@ def _run_job(job_id: str, image_bytes: bytes, phrases: list[str], config: Render
             _jobs[job_id]["message"] = "Gerando arquivos"
             _write_status(job_id)
 
+        music_label, music_path = resolve_music_track(config.music_track)
+
         manifest: list[dict] = []
         for index, phrase in enumerate(phrases, start=1):
             slug = f"post_{index:03d}"
@@ -87,7 +89,15 @@ def _run_job(job_id: str, image_bytes: bytes, phrases: list[str], config: Render
             video_path = videos_dir / f"{slug}.mp4"
 
             image_path.write_bytes(render_post_bytes(image_bytes, phrase, config))
-            create_static_video(image_path, video_path, config.video_duration, config.width, config.height)
+            create_static_video(
+                image_path,
+                video_path,
+                config.video_duration,
+                config.width,
+                config.height,
+                music_path=music_path,
+                music_volume=config.music_volume,
+            )
             manifest.append(
                 {
                     "numero": index,
@@ -95,6 +105,8 @@ def _run_job(job_id: str, image_bytes: bytes, phrases: list[str], config: Render
                     "imagem": f"imagens/{image_path.name}",
                     "video": f"videos/{video_path.name}",
                     "duracao_segundos": config.video_duration,
+                    "musica": music_label,
+                    "volume_musica": round(config.music_volume * 100),
                 }
             )
 
@@ -109,7 +121,10 @@ def _run_job(job_id: str, image_bytes: bytes, phrases: list[str], config: Render
         )
 
         with (directory / "frases.csv").open("w", newline="", encoding="utf-8-sig") as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=["numero", "frase", "imagem", "video"])
+            writer = csv.DictWriter(
+                csv_file,
+                fieldnames=["numero", "frase", "imagem", "video", "musica", "volume_musica"],
+            )
             writer.writeheader()
             for item in manifest:
                 writer.writerow({key: item[key] for key in writer.fieldnames})

@@ -40,6 +40,10 @@ class RenderSettings(BaseModel):
     video_duration: float = Field(default=8.0, ge=1.0, le=60.0)
     jpeg_quality: int = Field(default=95, ge=70, le=100)
 
+    # O navegador envia somente um identificador; o servidor resolve o arquivo fixo.
+    music_track: str = Field(default="none", min_length=1, max_length=64, pattern=r"^[a-z0-9_]+$")
+    music_volume: float = Field(default=0.20, ge=0.0, le=1.0)
+
     @field_validator("font_min")
     @classmethod
     def min_not_over_max(cls, value: int, info):

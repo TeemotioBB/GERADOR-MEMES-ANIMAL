@@ -13,6 +13,8 @@
     count: $('#countInput'),
     intensity: $('#intensitySelect'),
     duration: $('#durationInput'),
+    musicTrack: $('#musicTrackSelect'),
+    musicVolume: $('#musicVolumeInput'),
     theme: $('#themeInput'),
     tone: $('#toneInput'),
     examples: $('#examplesInput'),
@@ -88,6 +90,8 @@
       watermark_size: Number(elements.watermarkSize.value),
       watermark_color: '#111111',
       video_duration: Number(elements.duration.value),
+      music_track: elements.musicTrack.value,
+      music_volume: Math.max(0, Math.min(100, Number(elements.musicVolume.value) || 0)) / 100,
       jpeg_quality: 95,
     };
   }
@@ -99,6 +103,12 @@
     $('#fontMaxOutput').value = `${elements.fontMax.value}px`;
     $('#lineSpacingOutput').value = String(elements.lineSpacing.value).replace('.', ',');
     $('#watermarkSizeOutput').value = `${elements.watermarkSize.value}px`;
+  }
+
+  function updateMusicState() {
+    const disabled = elements.musicTrack.value === 'none';
+    elements.musicVolume.disabled = disabled;
+    elements.musicVolume.closest('.field')?.classList.toggle('muted-field', disabled);
   }
 
   function firstPhrase() {
@@ -382,6 +392,12 @@
     restoreOverlayPreview();
   });
 
+  elements.musicTrack.addEventListener('change', updateMusicState);
+  elements.musicVolume.addEventListener('input', () => {
+    const value = Math.max(0, Math.min(100, Number(elements.musicVolume.value) || 0));
+    elements.musicVolume.value = String(value);
+  });
+
   elements.generate.addEventListener('click', generatePhrases);
   elements.exactPreview.addEventListener('click', renderExactPreview);
   elements.batch.addEventListener('click', startBatch);
@@ -420,5 +436,6 @@
 
   window.addEventListener('resize', updateBrowserPreview);
   updateSliderOutputs();
+  updateMusicState();
   updateBrowserPreview();
 })();

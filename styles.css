@@ -233,3 +233,7 @@ input[type="color"] { min-height: 44px; padding: 4px; }
   .phrase-row { grid-template-columns: 28px 1fr 38px; gap: 7px; padding: 8px; }
   .download-phrase, .delete-phrase { width: 36px; height: 36px; }
 }
+
+.music-settings { margin-top: 2px; }
+.muted-field { opacity: 0.58; }
+input:disabled, select:disabled { cursor: not-allowed; background: #eeeae2; }

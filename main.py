@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+from html import escape
 import traceback
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -12,7 +13,7 @@ from pydantic import ValidationError
 
 from ai import PhraseGenerationError, generate_phrases, read_default_prompt
 from auth import OptionalBasicAuthMiddleware
-from config import BASE_DIR, settings
+from config import BASE_DIR, MUSIC_TRACKS, resolve_music_track, settings
 from jobs import cleanup_old_jobs, create_job, get_job, get_zip_path
 from models import PhraseRequest, PhraseResponse, RenderSettings
 from renderer import create_static_video, render_post_bytes
@@ -44,6 +45,16 @@ async def read_uploaded_image(file: UploadFile | None) -> bytes:
     return data
 
 
+def music_options_html() -> str:
+    options = ['<option value="none">Sem música</option>']
+    for track_id, track in MUSIC_TRACKS.items():
+        selected = " selected" if track_id == settings.default_music_track else ""
+        options.append(
+            f'<option value="{escape(track_id)}"{selected}>{escape(track.label)}</option>'
+        )
+    return "\n".join(options)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     html = (BASE_DIR / "index.html").read_text(encoding="utf-8")
@@ -53,6 +64,7 @@ async def home(request: Request):
         "{{ default_model }}": settings.xai_model,
         "{{ 'true' if api_configured else 'false' }}": "true" if api_configured else "false",
         "{{ max_batch_size }}": str(settings.max_batch_size),
+        "{{ music_options }}": music_options_html(),
         "{{ 'ok' if api_configured else 'warn' }}": "ok" if api_configured else "warn",
         "{{ 'API configurada no servidor' if api_configured else 'API ainda não configurada' }}": (
             "API configurada no servidor" if api_configured else "API ainda não configurada"
@@ -139,6 +151,10 @@ async def render_individual_video(
         raise HTTPException(status_code=422, detail=json.loads(exc.json())) from exc
 
     image_bytes = await read_uploaded_image(image)
+    try:
+        _, music_path = resolve_music_track(config.music_track)
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     try:
         with tempfile.TemporaryDirectory(prefix="single-video-", dir=settings.storage_dir) as temp_dir:
@@ -152,6 +168,8 @@ async def render_individual_video(
                 config.video_duration,
                 config.width,
                 config.height,
+                music_path=music_path,
+                music_volume=config.music_volume,
             )
             video_bytes = video_path.read_bytes()
     except Exception as exc:
@@ -196,6 +214,11 @@ async def start_job(
         config = RenderSettings.model_validate_json(settings_json)
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=json.loads(exc.json())) from exc
+
+    try:
+        resolve_music_track(config.music_track)
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     image_bytes = await read_uploaded_image(image)
     job_id = create_job(image_bytes, phrases, config)

@@ -9,9 +9,30 @@ BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR
 
 
+@dataclass(frozen=True)
+class MusicTrack:
+    label: str
+    path: Path
+
+
+# Músicas fixas disponíveis no sistema.
+# Para adicionar outra depois, coloque o MP3 na pasta music/ e registre aqui.
+MUSIC_TRACKS: dict[str, MusicTrack] = {
+    "la_isla_bonita": MusicTrack(
+        label="La Isla Bonita — Madonna",
+        path=BASE_DIR / "music" / "la-isla-bonita.mp3",
+    ),
+}
+
+
 def _reasoning_effort() -> str:
     value = os.getenv("XAI_REASONING_EFFORT", "medium").strip().lower()
     return value if value in {"low", "medium", "high"} else "medium"
+
+
+def _default_music_track() -> str:
+    value = os.getenv("DEFAULT_MUSIC_TRACK", "la_isla_bonita").strip()
+    return value if value in MUSIC_TRACKS else "none"
 
 
 @dataclass(frozen=True)
@@ -32,6 +53,9 @@ class Settings:
     job_ttl_hours: int = max(1, int(os.getenv("JOB_TTL_HOURS", "24")))
     storage_dir: Path = Path(os.getenv("STORAGE_DIR", "/tmp/cretino-factory"))
 
+    # Música padrão da interface. "none" gera o vídeo sem áudio.
+    default_music_track: str = _default_music_track()
+
     # Arquivos locais — todos ficam na raiz do repositório
     sample_image: Path = BASE_DIR / "sample-dog.jpg"
     default_prompt: Path = BASE_DIR / "default_prompt.txt"
@@ -39,3 +63,17 @@ class Settings:
 
 settings = Settings()
 settings.storage_dir.mkdir(parents=True, exist_ok=True)
+
+
+def resolve_music_track(track_id: str) -> tuple[str, Path | None]:
+    """Transforma o identificador seguro da tela em nome e caminho do MP3."""
+    normalized = (track_id or "none").strip()
+    if normalized == "none":
+        return "Sem música", None
+
+    track = MUSIC_TRACKS.get(normalized)
+    if track is None:
+        raise ValueError("A música selecionada não existe.")
+    if not track.path.is_file():
+        raise FileNotFoundError(f'O arquivo da música "{track.label}" não foi encontrado no projeto.')
+    return track.label, track.path

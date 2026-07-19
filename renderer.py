@@ -163,9 +163,20 @@ def render_post_bytes(image_bytes: bytes, phrase: str, config: RenderSettings) -
     return output.getvalue()
 
 
-def create_static_video(image_path: Path, video_path: Path, duration: float, width: int, height: int) -> None:
+def create_static_video(
+    image_path: Path,
+    video_path: Path,
+    duration: float,
+    width: int,
+    height: int,
+    music_path: Path | None = None,
+    music_volume: float = 0.20,
+) -> None:
+    """Cria um MP4 estático e, quando escolhida, mistura a música fixa do projeto."""
     if not shutil.which("ffmpeg"):
         raise RuntimeError("FFmpeg não foi encontrado no servidor.")
+    if music_path is not None and not music_path.is_file():
+        raise FileNotFoundError(f"Arquivo de música não encontrado: {music_path.name}")
 
     command = [
         "ffmpeg",
@@ -177,24 +188,66 @@ def create_static_video(image_path: Path, video_path: Path, duration: float, wid
         "1",
         "-i",
         str(image_path),
-        "-t",
-        f"{duration:.3f}",
-        "-r",
-        "30",
-        "-vf",
-        f"scale={width}:{height}:flags=lanczos,format=yuv420p",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "veryfast",
-        "-crf",
-        "20",
-        "-pix_fmt",
-        "yuv420p",
-        "-movflags",
-        "+faststart",
-        str(video_path),
     ]
-    result = subprocess.run(command, capture_output=True, text=True, timeout=max(120, int(duration * 20)))
+
+    if music_path is not None:
+        # Repete a faixa caso o usuário escolha uma duração maior que a música.
+        command.extend(["-stream_loop", "-1", "-i", str(music_path)])
+
+    command.extend(
+        [
+            "-t",
+            f"{duration:.3f}",
+            "-r",
+            "30",
+            "-vf",
+            f"scale={width}:{height}:flags=lanczos,format=yuv420p",
+            "-map",
+            "0:v:0",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "20",
+            "-pix_fmt",
+            "yuv420p",
+        ]
+    )
+
+    if music_path is not None:
+        safe_volume = max(0.0, min(float(music_volume), 1.0))
+        fade_duration = min(0.35, max(0.10, duration / 4))
+        fade_out_start = max(0.0, duration - fade_duration)
+        audio_filter = (
+            f"volume={safe_volume:.3f},"
+            f"afade=t=in:st=0:d={fade_duration:.3f},"
+            f"afade=t=out:st={fade_out_start:.3f}:d={fade_duration:.3f}"
+        )
+        command.extend(
+            [
+                "-map",
+                "1:a:0",
+                "-af",
+                audio_filter,
+                "-c:a",
+                "aac",
+                "-b:a",
+                "192k",
+                "-ar",
+                "44100",
+            ]
+        )
+    else:
+        command.append("-an")
+
+    command.extend(["-movflags", "+faststart", str(video_path)])
+
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        timeout=max(120, int(duration * 20)),
+    )
     if result.returncode != 0:
         raise RuntimeError(f"FFmpeg falhou: {result.stderr.strip()}")

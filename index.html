@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cretino Factory</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=2">
 </head>
 <body
   data-api-configured="{{ 'true' if api_configured else 'false' }}"
@@ -14,7 +14,7 @@
     <div>
       <p class="eyebrow">GERADOR EM MASSA</p>
       <h1>Cretino Factory</h1>
-      <p class="subtitle">Frase automática + imagem estática + vídeo MP4 de 8 segundos.</p>
+      <p class="subtitle">Frase automática + imagem estática + vídeo MP4 com música opcional.</p>
     </div>
     <div class="status-chip {{ 'ok' if api_configured else 'warn' }}">
       <span></span>
@@ -96,6 +96,21 @@
         </div>
       </div>
 
+      <div class="grid-2 music-settings">
+        <div class="field">
+          <label for="musicTrackSelect">Música do vídeo</label>
+          <select id="musicTrackSelect">
+            {{ music_options }}
+          </select>
+          <small>A música já fica salva no projeto. Você apenas escolhe se ela será usada.</small>
+        </div>
+        <div class="field">
+          <label for="musicVolumeInput">Volume da música</label>
+          <div class="input-suffix"><input id="musicVolumeInput" type="number" min="0" max="100" step="5" value="20"><span>%</span></div>
+          <small>20% evita que o áudio fique muito alto no Reel.</small>
+        </div>
+      </div>
+
       <div class="field full">
         <label for="themeInput">Temas</label>
         <input id="themeInput" value="relacionamento, rotina, dinheiro, amizade e situações cotidianas">
@@ -170,7 +185,7 @@ Falando em coisa gostosa: você está bem?</textarea>
           <div id="previewText" class="preview-text">Se só eu sei a senha do meu cartão, como é que a maquininha sabe que eu errei a senha?</div>
           <div id="previewWatermark" class="preview-watermark">@minhapagina</div>
         </div>
-        <p class="preview-note">A prévia no navegador é aproximada. “Gerar prévia exata” usa a mesma renderização do lote final.</p>
+        <p class="preview-note">A prévia mostra somente a imagem. A música escolhida será adicionada ao MP4 no download individual e no lote.</p>
       </div>
 
       <div class="panel phrase-panel">
@@ -203,12 +218,12 @@ Falando em coisa gostosa: você está bem?</textarea>
           <button id="batchButton" class="button primary">Gerar imagens + vídeos</button>
           <a id="downloadButton" class="button success hidden" href="#">Baixar ZIP</a>
         </div>
-        <p class="batch-note">Use a seta verde ao lado de qualquer frase para baixar somente aquele MP4 no celular. O ZIP continua disponível para baixar o lote completo.</p>
+        <p class="batch-note">Use a seta verde para baixar somente aquele MP4. A música selecionada acima será usada tanto no download individual quanto no lote completo.</p>
       </div>
     </section>
   </main>
 
   <div id="toast" class="toast hidden" role="status"></div>
-  <script src="/app.js" defer></script>
+  <script src="/app.js?v=2" defer></script>
 </body>
 </html>

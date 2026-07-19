@@ -15,6 +15,8 @@ def test_home_loads():
         response = client.get("/")
         assert response.status_code == 200
         assert "Cretino Factory" in response.text
+        assert "La Isla Bonita" in response.text
+        assert 'value="la_isla_bonita" selected' in response.text
 
 
 def test_individual_video_download():
